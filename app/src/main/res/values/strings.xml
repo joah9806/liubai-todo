@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">待办</string>
+    <string name="add_hint">添加待办…</string>
+    <string name="empty_primary">下拉添加待办</string>
+    <string name="empty_secondary">右滑标记完成</string>
+    <string name="a11y_new_todo">新待办内容</string>
+    <string name="a11y_todo_active">%1$s，右滑标记完成</string>
+    <string name="a11y_todo_done">%1$s，已完成</string>
+</resources>
