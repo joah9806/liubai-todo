@@ -59,7 +59,9 @@ todo-app/
 ├─ app/src/main/java/com/liubai/todo/   # 应用源码
 ├─ app/src/main/res/                     # 图标、主题、文案
 ├─ app/src/test/java/com/liubai/todo/    # Robolectric UI/交互测试
-├─ dist/                                 # 本地构建输出（Git 忽略，发布包见 Releases）
+├─ release/                              # 发布用 APK 和 SHA-256（供 Actions 上传）
+├─ .github/workflows/                    # Release 资产上传工作流
+├─ dist/                                 # 本地构建输出（Git 忽略）
 ├─ preview/                              # 实际渲染截图
 ├─ build.ps1 / build.cmd                 # 无 Gradle 的签名构建脚本
 ├─ gradlew / gradlew.bat                 # Gradle 8.9 wrapper

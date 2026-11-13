@@ -1,0 +1,30 @@
+name: Upload release asset
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload APK and checksum to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          test -f release/todo-1.0.apk
+          test -f release/todo-1.0.apk.sha256
+          gh release upload "$TAG" release/todo-1.0.apk release/todo-1.0.apk.sha256 --clobber
+          gh release view "$TAG" --json url,assets
