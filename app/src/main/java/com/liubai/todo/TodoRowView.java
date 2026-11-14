@@ -30,6 +30,8 @@ public class TodoRowView extends FrameLayout {
         void onDelete(Todo todo, TodoRowView row);
 
         void onDeleteAllCompletedRequested();
+
+        void onEditRequested(Todo todo, TodoRowView row);
     }
 
     private final TextView label;
@@ -83,7 +85,11 @@ public class TodoRowView extends FrameLayout {
         swipeDeleteColor = context.getColor(R.color.swipe_delete);
         setBackgroundColor(context.getColor(R.color.paper));
         setFocusable(false);
-        setClickable(false);
+        setOnClickListener(view -> {
+            if (listener != null && todo != null) {
+                listener.onEditRequested(todo, this);
+            }
+        });
 
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
@@ -294,6 +300,8 @@ public class TodoRowView extends FrameLayout {
                 } else {
                     springBack();
                 }
+            } else if (!longPressFired) {
+                performClick();
             }
             return true;
         }

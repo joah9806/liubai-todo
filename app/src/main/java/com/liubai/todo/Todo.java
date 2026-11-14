@@ -2,7 +2,7 @@ package com.liubai.todo;
 
 final class Todo {
     final long id;
-    final String text;
+    String text;
     boolean done;
     final long createdAt;
     long completedAt;

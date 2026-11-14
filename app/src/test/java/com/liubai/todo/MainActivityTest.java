@@ -215,6 +215,45 @@ public class MainActivityTest {
     }
 
     @Test
+    public void tapTodoOpensEditorAndSavesChanges() {
+        addTodo("原始内容");
+        layoutRoot();
+        tapRow(listView.getChildAt(0));
+
+        assertTrue(root.isAddOpen());
+        assertEquals("原始内容", editor.getText().toString());
+        screenshot("06-edit.png");
+
+        editor.setText("修改后的内容");
+        editor.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        idle(900);
+        layoutRoot();
+        assertEquals("修改后的内容", textOf(listView.getChildAt(0)));
+        List<Todo> stored = new TodoStore(app).load();
+        assertEquals("修改后的内容", stored.get(0).text);
+        assertFalse(stored.get(0).done);
+
+        // Completed items can also be edited while keeping their completed state.
+        swipeRightRow(listView.getChildAt(0));
+        tapRow(listView.getChildAt(0));
+        assertTrue(root.isAddOpen());
+        assertEquals("修改后的内容", editor.getText().toString());
+        editor.setText("已完成也能修改");
+        editor.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        idle(900);
+        layoutRoot();
+
+        TodoRowView doneRow = (TodoRowView) listView.getChildAt(0);
+        assertEquals("已完成也能修改", textOf(doneRow));
+        assertTrue(doneRow.getTodo().done);
+        TextView doneLabel = (TextView) doneRow.getChildAt(0);
+        assertTrue((doneLabel.getPaintFlags() & Paint.STRIKE_THRU_TEXT_FLAG) != 0);
+        stored = new TodoStore(app).load();
+        assertEquals("已完成也能修改", stored.get(0).text);
+        assertTrue(stored.get(0).done);
+    }
+
+    @Test
     public void emptyStateScreenshot() {
         idle(400);
         layoutRoot();
@@ -245,6 +284,15 @@ public class MainActivityTest {
         dispatchTouch(row, MotionEvent.ACTION_MOVE, 460, y);
         dispatchTouch(row, MotionEvent.ACTION_UP, 460, y);
         idle(1000);
+        layoutRoot();
+    }
+
+    private void tapRow(View row) {
+        layoutRoot();
+        int y = row.getHeight() / 2;
+        dispatchTouch(row, MotionEvent.ACTION_DOWN, 80, y);
+        dispatchTouch(row, MotionEvent.ACTION_UP, 80, y);
+        idle(700);
         layoutRoot();
     }
 

@@ -37,6 +37,8 @@ public class MainActivity extends Activity
     private LinearLayout listView;
     private LinearLayout emptyBox;
     private AlertDialog deleteAllDialog;
+    private Todo editingTodo;
+    private TodoRowView editingRow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -237,12 +239,53 @@ public class MainActivity extends Activity
     private void commitEditor() {
         EditText editor = root.getEditor();
         String text = editor.getText().toString().trim();
-        if (!text.isEmpty()) {
+        Todo target = editingTodo;
+        TodoRowView targetRow = editingRow;
+        editingTodo = null;
+        editingRow = null;
+
+        if (target != null) {
+            if (!text.isEmpty()) {
+                updateTodo(target, targetRow, text);
+            }
+        } else if (!text.isEmpty()) {
             addTodo(text);
         }
+
         editor.setText("");
+        editor.setHint(R.string.add_hint);
         editor.clearFocus();
         root.closeAddPanel();
+    }
+
+    private void updateTodo(Todo todo, TodoRowView row, String text) {
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) {
+            return;
+        }
+        if (trimmed.length() > MAX_TODO_LENGTH) {
+            trimmed = trimmed.substring(0, MAX_TODO_LENGTH);
+        }
+        if (trimmed.equals(todo.text)) {
+            return;
+        }
+
+        todo.text = trimmed;
+        store.save(todos);
+        if (row != null && row.getParent() == listView) {
+            row.bind(todo);
+        } else {
+            for (int i = 0; i < listView.getChildCount(); i++) {
+                View child = listView.getChildAt(i);
+                if (child instanceof TodoRowView) {
+                    TodoRowView candidate = (TodoRowView) child;
+                    if (candidate.getTodo() == todo) {
+                        candidate.bind(todo);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private void addTodo(String text) {
@@ -367,6 +410,20 @@ public class MainActivity extends Activity
         }
     }
 
+    @Override
+    public void onEditRequested(Todo todo, TodoRowView row) {
+        if (todo == null || root.isAddOpen()) {
+            return;
+        }
+        editingTodo = todo;
+        editingRow = row;
+        EditText editor = root.getEditor();
+        editor.setHint(R.string.edit_hint);
+        editor.setText(todo.text);
+        editor.setSelection(editor.length());
+        root.openAddPanel(false);
+    }
+
     private int countCompleted() {
         int count = 0;
         for (Todo todo : todos) {
@@ -413,6 +470,9 @@ public class MainActivity extends Activity
 
     @Override
     public void onAddPanelClosed() {
+        editingTodo = null;
+        editingRow = null;
+        root.getEditor().setHint(R.string.add_hint);
         emptyBox.animate().cancel();
         emptyBox.setAlpha(1f);
         refreshEmptyState();

@@ -130,10 +130,14 @@ public class PullToAddLayout extends FrameLayout {
     }
 
     public void openAddPanel() {
+        openAddPanel(true);
+    }
+
+    public void openAddPanel(boolean scrollToTop) {
         if (addOpen || settling) {
             return;
         }
-        if (scrollView.getScrollY() != 0) {
+        if (scrollToTop && scrollView.getScrollY() != 0) {
             scrollView.smoothScrollTo(0, 0);
         }
         addOpen = true;

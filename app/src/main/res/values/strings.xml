@@ -2,11 +2,12 @@
 <resources>
     <string name="app_name">待办</string>
     <string name="add_hint">添加待办…</string>
+    <string name="edit_hint">修改待办…</string>
     <string name="empty_primary">下拉添加待办</string>
     <string name="empty_secondary">右滑标记完成</string>
-    <string name="a11y_new_todo">新待办内容</string>
-    <string name="a11y_todo_active">%1$s，右滑标记完成</string>
-    <string name="a11y_todo_done">%1$s，已完成。右滑可删除，长按可删除全部已办</string>
+    <string name="a11y_new_todo">待办内容</string>
+    <string name="a11y_todo_active">%1$s，轻点修改，右滑标记完成</string>
+    <string name="a11y_todo_done">%1$s，已完成。轻点修改，右滑可删除，长按可删除全部已办</string>
     <string name="delete_all_completed_title">删除全部已办？</string>
     <string name="delete_all_completed_message">将永久删除 %1$d 条已办事项。\n此操作不可撤销。</string>
     <string name="delete_all_completed_confirm">删除全部</string>

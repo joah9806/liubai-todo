@@ -6,15 +6,15 @@ on:
       tag:
         description: "Release tag"
         required: true
-        default: "v1.2.0"
+        default: "v1.3.0"
       apk:
         description: "Path to the APK in the repository"
         required: true
-        default: "release/todo-1.2.0.apk"
+        default: "release/todo-1.3.0.apk"
       checksum:
         description: "Path to the SHA-256 file in the repository"
         required: true
-        default: "release/todo-1.2.0.apk.sha256"
+        default: "release/todo-1.3.0.apk.sha256"
 
 permissions:
   contents: write
