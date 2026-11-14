@@ -33,6 +33,9 @@ public class TodoRowView extends FrameLayout {
     private final Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint dividerPaint = new Paint();
     private final Path checkPath = new Path();
+    private final int inkColor;
+    private final int doneColor;
+    private final int swipeTintColor;
     private final int touchSlop;
 
     private Todo todo;
@@ -51,14 +54,17 @@ public class TodoRowView extends FrameLayout {
     public TodoRowView(Context context) {
         super(context);
         setWillNotDraw(false);
-        setBackgroundColor(Ui.PAPER);
+        inkColor = context.getColor(R.color.ink);
+        doneColor = context.getColor(R.color.done);
+        swipeTintColor = context.getColor(R.color.swipe_tint);
+        setBackgroundColor(context.getColor(R.color.paper));
         setFocusable(false);
         setClickable(false);
 
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
         label = new TextView(context);
-        label.setTextColor(Ui.INK);
+        label.setTextColor(inkColor);
         label.setTextSize(17f);
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         label.setLineSpacing(Ui.dp(context, 3), 1f);
@@ -73,13 +79,13 @@ public class TodoRowView extends FrameLayout {
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
         setMinimumHeight(Ui.dp(context, 64));
 
-        checkPaint.setColor(Ui.SWIPE_CHECK);
+        checkPaint.setColor(context.getColor(R.color.swipe_check));
         checkPaint.setStyle(Paint.Style.STROKE);
         checkPaint.setStrokeWidth(Ui.dp(context, 2.2f));
         checkPaint.setStrokeCap(Paint.Cap.ROUND);
         checkPaint.setStrokeJoin(Paint.Join.ROUND);
 
-        dividerPaint.setColor(Ui.DIVIDER);
+        dividerPaint.setColor(context.getColor(R.color.divider));
         dividerPaint.setStrokeWidth(Math.max(1f, Ui.dp(context, 0.75f)));
     }
 
@@ -94,12 +100,12 @@ public class TodoRowView extends FrameLayout {
 
         label.setText(todo.text);
         if (todo.done) {
-            label.setTextColor(Ui.DONE);
+            label.setTextColor(doneColor);
             label.setPaintFlags(label.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
             label.setContentDescription(
                     getContext().getString(R.string.a11y_todo_done, todo.text));
         } else {
-            label.setTextColor(Ui.INK);
+            label.setTextColor(inkColor);
             label.setPaintFlags(label.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
             label.setContentDescription(
                     getContext().getString(R.string.a11y_todo_active, todo.text));
@@ -159,9 +165,9 @@ public class TodoRowView extends FrameLayout {
         float progress = Math.min(1f, swipe / Math.max(1f, width * 0.3f));
         tintPaint.setColor(Color.argb(
                 (int) (230 * progress),
-                Ui.SWIPE_TINT_R,
-                Ui.SWIPE_TINT_G,
-                Ui.SWIPE_TINT_B));
+                Color.red(swipeTintColor),
+                Color.green(swipeTintColor),
+                Color.blue(swipeTintColor)));
         canvas.drawRect(0f, 0f, width, getHeight(), tintPaint);
 
         checkPaint.setAlpha((int) (255 * Math.min(1f, progress * 1.6f)));

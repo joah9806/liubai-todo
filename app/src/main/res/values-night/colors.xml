@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="paper">#FF111113</color>
+    <color name="ink">#FFECECEE</color>
+    <color name="done">#FF8F8F95</color>
+    <color name="hint">#FF6B6B71</color>
+    <color name="divider">#FF2A2A2D</color>
+    <color name="empty_primary">#FF8F8F95</color>
+    <color name="empty_secondary">#FF5E5E64</color>
+    <color name="swipe_check">#FF92B597</color>
+    <color name="swipe_tint">#FF1D2A21</color>
+    <color name="control_normal">#FF737379</color>
+    <color name="control_highlight">#22FFFFFF</color>
+</resources>

@@ -10,8 +10,8 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:colorAccent">@color/ink</item>
         <item name="android:colorControlActivated">@color/ink</item>
-        <item name="android:colorControlNormal">#FF9A9A9E</item>
-        <item name="android:colorControlHighlight">#11000000</item>
+        <item name="android:colorControlNormal">@color/control_normal</item>
+        <item name="android:colorControlHighlight">@color/control_highlight</item>
         <item name="android:fontFamily">sans</item>
     </style>
 

@@ -2,5 +2,15 @@
 <resources>
     <color name="paper">#FFFFFFFF</color>
     <color name="ink">#FF1B1B1D</color>
-    <color name="icon_bg">#FF232326</color>
+    <color name="done">#FFA2A2A7</color>
+    <color name="hint">#FFB4B4B8</color>
+    <color name="divider">#FFEAEAEC</color>
+    <color name="empty_primary">#FF9E9EA3</color>
+    <color name="empty_secondary">#FFC5C5C9</color>
+    <color name="swipe_check">#FF7F9782</color>
+    <color name="swipe_tint">#FFE9F2E9</color>
+    <color name="control_normal">#FF9A9A9E</color>
+    <color name="control_highlight">#11000000</color>
+    <color name="icon_bg">#FFFFFFFF</color>
+    <color name="icon_ink">#FF000000</color>
 </resources>

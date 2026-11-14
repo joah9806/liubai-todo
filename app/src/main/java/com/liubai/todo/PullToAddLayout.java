@@ -59,7 +59,7 @@ public class PullToAddLayout extends FrameLayout {
     public PullToAddLayout(Context context, ScrollView scrollView) {
         super(context);
         this.scrollView = scrollView;
-        setBackgroundColor(Ui.PAPER);
+        setBackgroundColor(context.getColor(R.color.paper));
 
         panelHeight = Ui.dp(context, PANEL_HEIGHT_DP);
         openThreshold = Ui.dp(context, OPEN_THRESHOLD_DP);
@@ -72,7 +72,7 @@ public class PullToAddLayout extends FrameLayout {
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
 
         addPanel = new FrameLayout(context);
-        addPanel.setBackgroundColor(Ui.PAPER);
+        addPanel.setBackgroundColor(context.getColor(R.color.paper));
         addPanel.setClipChildren(true);
         addPanel.setVisibility(GONE);
         addPanel.setClickable(true);
@@ -82,8 +82,8 @@ public class PullToAddLayout extends FrameLayout {
         editor = new EditText(context);
         editor.setBackground(null);
         editor.setHint(R.string.add_hint);
-        editor.setHintTextColor(Ui.HINT);
-        editor.setTextColor(Ui.INK);
+        editor.setHintTextColor(context.getColor(R.color.hint));
+        editor.setTextColor(context.getColor(R.color.ink));
         editor.setTextSize(18f);
         editor.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         editor.setGravity(Gravity.CENTER_VERTICAL);
@@ -106,7 +106,7 @@ public class PullToAddLayout extends FrameLayout {
         });
 
         View divider = new View(context);
-        divider.setBackgroundColor(Ui.DIVIDER);
+        divider.setBackgroundColor(context.getColor(R.color.divider));
         addPanel.addView(divider, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 Math.max(1, Ui.dp(context, 0.75f)),

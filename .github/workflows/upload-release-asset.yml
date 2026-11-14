@@ -6,7 +6,15 @@ on:
       tag:
         description: "Release tag"
         required: true
-        default: "v1.0.0"
+        default: "v1.1.0"
+      apk:
+        description: "Path to the APK in the repository"
+        required: true
+        default: "release/todo-1.1.0.apk"
+      checksum:
+        description: "Path to the SHA-256 file in the repository"
+        required: true
+        default: "release/todo-1.1.0.apk.sha256"
 
 permissions:
   contents: write
@@ -22,9 +30,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.inputs.tag }}
+          APK: ${{ github.event.inputs.apk }}
+          CHECKSUM: ${{ github.event.inputs.checksum }}
         run: |
           set -euo pipefail
-          test -f release/todo-1.0.apk
-          test -f release/todo-1.0.apk.sha256
-          gh release upload "$TAG" release/todo-1.0.apk release/todo-1.0.apk.sha256 --clobber
+          test -f "$APK"
+          test -f "$CHECKSUM"
+          gh release upload "$TAG" "$APK" "$CHECKSUM" --clobber
           gh release view "$TAG" --json url,assets

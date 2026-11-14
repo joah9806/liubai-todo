@@ -64,16 +64,19 @@ public class MainActivity extends Activity
             window.setDecorFitsSystemWindows(false);
             WindowInsetsController controller = window.getDecorView().getWindowInsetsController();
             if (controller != null) {
-                int appearance = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                         | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                controller.setSystemBarsAppearance(appearance, appearance);
+                int appearance = Ui.isNight(this) ? 0 : mask;
+                controller.setSystemBarsAppearance(appearance, mask);
             }
         } else {
             int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                    | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            if (!Ui.isNight(this)) {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                        | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            }
             window.getDecorView().setSystemUiVisibility(flags);
         }
 
@@ -138,7 +141,7 @@ public class MainActivity extends Activity
 
         TextView primary = new TextView(this);
         primary.setText(R.string.empty_primary);
-        primary.setTextColor(Ui.EMPTY_PRIMARY);
+        primary.setTextColor(getColor(R.color.empty_primary));
         primary.setTextSize(16f);
         primary.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         primary.setGravity(Gravity.CENTER);
@@ -149,7 +152,7 @@ public class MainActivity extends Activity
 
         TextView secondary = new TextView(this);
         secondary.setText(R.string.empty_secondary);
-        secondary.setTextColor(Ui.EMPTY_SECONDARY);
+        secondary.setTextColor(getColor(R.color.empty_secondary));
         secondary.setTextSize(12f);
         secondary.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         secondary.setGravity(Gravity.CENTER);

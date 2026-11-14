@@ -118,7 +118,7 @@ public class MainActivityTest {
         TodoRowView doneRow = (TodoRowView) listView.getChildAt(2);
         TextView doneLabel = (TextView) doneRow.getChildAt(0);
         assertTrue((doneLabel.getPaintFlags() & Paint.STRIKE_THRU_TEXT_FLAG) != 0);
-        assertEquals(Ui.DONE, doneLabel.getCurrentTextColor());
+        assertEquals(activity.getColor(R.color.done), doneLabel.getCurrentTextColor());
 
         // Persistence writes unfinished items first and the completed item last.
         List<Todo> stored = new TodoStore(app).load();
