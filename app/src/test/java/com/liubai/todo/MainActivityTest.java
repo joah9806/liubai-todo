@@ -2,9 +2,11 @@ package com.liubai.todo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -15,6 +17,7 @@ import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -28,6 +31,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowAlertDialog;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -145,6 +149,72 @@ public class MainActivityTest {
     }
 
     @Test
+    public void completedRowSwipeDeletesPermanently() {
+        addTodo("保留事项");
+        addTodo("将被删除");
+        layoutRoot();
+        swipeRightRow(listView.getChildAt(0));
+
+        assertEquals(2, listView.getChildCount());
+        TodoRowView doneRow = (TodoRowView) listView.getChildAt(1);
+        assertTrue(doneRow.getTodo().done);
+
+        int y = doneRow.getHeight() / 2;
+        dispatchTouch(doneRow, MotionEvent.ACTION_DOWN, 60, y);
+        dispatchTouch(doneRow, MotionEvent.ACTION_MOVE, 220, y);
+        dispatchTouch(doneRow, MotionEvent.ACTION_MOVE, 460, y);
+        screenshot("05-swipe-delete.png");
+        dispatchTouch(doneRow, MotionEvent.ACTION_UP, 460, y);
+        idle(1200);
+        layoutRoot();
+
+        assertEquals(1, listView.getChildCount());
+        assertEquals("保留事项", textOf(listView.getChildAt(0)));
+        List<Todo> stored = new TodoStore(app).load();
+        assertEquals(1, stored.size());
+        assertFalse(stored.get(0).done);
+    }
+
+    @Test
+    public void longPressCompletedAsksToDeleteAllWithConfirmation() {
+        addTodo("保留事项");
+        addTodo("已办一");
+        addTodo("已办二");
+        layoutRoot();
+        swipeRightRow(listView.getChildAt(0));
+        swipeRightRow(listView.getChildAt(0));
+
+        assertEquals(3, listView.getChildCount());
+        assertEquals("保留事项", textOf(listView.getChildAt(0)));
+        assertTrue(((TodoRowView) listView.getChildAt(1)).getTodo().done);
+        assertTrue(((TodoRowView) listView.getChildAt(2)).getTodo().done);
+
+        TodoRowView doneRow = (TodoRowView) listView.getChildAt(1);
+        int y = doneRow.getHeight() / 2;
+        dispatchTouch(doneRow, MotionEvent.ACTION_DOWN, 100, y);
+        idle(ViewConfiguration.getLongPressTimeout() + 150);
+
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        assertTrue(dialog.isShowing());
+        // The rows are still there until the confirmation button is pressed.
+        assertEquals(3, listView.getChildCount());
+        assertEquals(
+                activity.getString(R.string.delete_all_completed_confirm),
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).getText().toString());
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        idle(500);
+        layoutRoot();
+
+        assertEquals(1, listView.getChildCount());
+        assertEquals("保留事项", textOf(listView.getChildAt(0)));
+        List<Todo> stored = new TodoStore(app).load();
+        assertEquals(1, stored.size());
+        assertFalse(stored.get(0).done);
+    }
+
+    @Test
     public void emptyStateScreenshot() {
         idle(400);
         layoutRoot();
@@ -164,6 +234,17 @@ public class MainActivityTest {
         editor.setText(text);
         editor.onEditorAction(EditorInfo.IME_ACTION_DONE);
         idle(600);
+        layoutRoot();
+    }
+
+    private void swipeRightRow(View row) {
+        layoutRoot();
+        int y = row.getHeight() / 2;
+        dispatchTouch(row, MotionEvent.ACTION_DOWN, 60, y);
+        dispatchTouch(row, MotionEvent.ACTION_MOVE, 220, y);
+        dispatchTouch(row, MotionEvent.ACTION_MOVE, 460, y);
+        dispatchTouch(row, MotionEvent.ACTION_UP, 460, y);
+        idle(1000);
         layoutRoot();
     }
 

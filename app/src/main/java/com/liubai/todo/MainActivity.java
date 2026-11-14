@@ -1,6 +1,7 @@
 package com.liubai.todo;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Typeface;
@@ -24,7 +25,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 public class MainActivity extends Activity
-        implements PullToAddLayout.Listener, TodoRowView.OnCompleteListener {
+        implements PullToAddLayout.Listener, TodoRowView.Listener {
 
     static final int MAX_TODO_LENGTH = 200;
 
@@ -35,6 +36,7 @@ public class MainActivity extends Activity
     private ScrollView scrollView;
     private LinearLayout listView;
     private LinearLayout emptyBox;
+    private AlertDialog deleteAllDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -175,7 +177,7 @@ public class MainActivity extends Activity
     private TodoRowView makeRow(Todo todo) {
         TodoRowView row = new TodoRowView(this);
         row.bind(todo);
-        row.setOnCompleteListener(this);
+        row.setListener(this);
         return row;
     }
 
@@ -324,6 +326,78 @@ public class MainActivity extends Activity
     }
 
     @Override
+    public void onDelete(Todo todo, TodoRowView row) {
+        if (!todo.done) {
+            return;
+        }
+        int index = todos.indexOf(todo);
+        if (index < 0) {
+            return;
+        }
+        todos.remove(index);
+        store.save(todos);
+        listView.removeView(row);
+        refreshDividers();
+        refreshEmptyState();
+    }
+
+    @Override
+    public void onDeleteAllCompletedRequested() {
+        int count = countCompleted();
+        if (count == 0) {
+            return;
+        }
+        if (deleteAllDialog != null && deleteAllDialog.isShowing()) {
+            return;
+        }
+
+        deleteAllDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.delete_all_completed_title)
+                .setMessage(getString(R.string.delete_all_completed_message, count))
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(
+                        R.string.delete_all_completed_confirm,
+                        (dialog, which) -> deleteAllCompleted())
+                .create();
+        deleteAllDialog.setOnDismissListener(dialog -> deleteAllDialog = null);
+        deleteAllDialog.show();
+        if (deleteAllDialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
+            deleteAllDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setTextColor(getColor(R.color.danger));
+        }
+    }
+
+    private int countCompleted() {
+        int count = 0;
+        for (Todo todo : todos) {
+            if (todo.done) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void deleteAllCompleted() {
+        for (int i = listView.getChildCount() - 1; i >= 0; i--) {
+            View child = listView.getChildAt(i);
+            if (child instanceof TodoRowView) {
+                Todo todo = ((TodoRowView) child).getTodo();
+                if (todo != null && todo.done) {
+                    listView.removeViewAt(i);
+                }
+            }
+        }
+        for (int i = todos.size() - 1; i >= 0; i--) {
+            if (todos.get(i).done) {
+                todos.remove(i);
+            }
+        }
+        store.save(todos);
+        refreshDividers();
+        refreshEmptyState();
+    }
+
+    @Override
     public void onAddPanelOpened() {
         emptyBox.animate().cancel();
         emptyBox.animate()
@@ -356,5 +430,14 @@ public class MainActivity extends Activity
             return;
         }
         super.onBackPressed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (deleteAllDialog != null) {
+            deleteAllDialog.dismiss();
+            deleteAllDialog = null;
+        }
+        super.onDestroy();
     }
 }

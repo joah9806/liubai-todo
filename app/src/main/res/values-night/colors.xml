@@ -9,6 +9,9 @@
     <color name="empty_secondary">#FF5E5E64</color>
     <color name="swipe_check">#FF92B597</color>
     <color name="swipe_tint">#FF1D2A21</color>
+    <color name="swipe_delete">#FFE09A96</color>
+    <color name="swipe_delete_tint">#FF2E1C1E</color>
+    <color name="danger">#FFE58C86</color>
     <color name="control_normal">#FF737379</color>
     <color name="control_highlight">#22FFFFFF</color>
 </resources>
