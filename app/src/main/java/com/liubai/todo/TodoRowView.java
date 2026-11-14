@@ -9,19 +9,27 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
 /**
- * One content row. Unfinished rows use a right swipe to complete; completed rows
- * use a right swipe to delete. Long-pressing a completed row asks the activity
- * to delete all completed rows after confirmation.
+ * One content row. Editing happens in place: tapping the row swaps its label for
+ * an inline EditText. Unfinished rows use a right swipe to complete; completed
+ * rows use a right swipe to delete. Long-pressing a completed row asks the
+ * activity to delete all completed rows after confirmation.
  */
 public class TodoRowView extends FrameLayout {
     public interface Listener {
@@ -31,14 +39,20 @@ public class TodoRowView extends FrameLayout {
 
         void onDeleteAllCompletedRequested();
 
-        void onEditRequested(Todo todo, TodoRowView row);
+        void onInlineEditStarted(TodoRowView row);
+
+        void onInlineEditFinished(TodoRowView row);
+
+        void onEditCommitted(Todo todo, TodoRowView row, String text);
     }
 
     private final TextView label;
+    private final EditText inlineEditor;
     private final Paint tintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint feedbackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint dividerPaint = new Paint();
     private final Path feedbackPath = new Path();
+    private final int paperColor;
+    private final int editSurfaceColor;
     private final int inkColor;
     private final int doneColor;
     private final int swipeTintColor;
@@ -49,7 +63,7 @@ public class TodoRowView extends FrameLayout {
 
     private Todo todo;
     private boolean done;
-    private boolean dividerVisible = true;
+    private boolean editing;
     private boolean tracking;
     private boolean horizontal;
     private boolean completing;
@@ -62,7 +76,7 @@ public class TodoRowView extends FrameLayout {
     private Listener listener;
 
     private final Runnable longPressRunnable = () -> {
-        if (!done || !tracking || horizontal || swipe > 0f) {
+        if (!done || editing || !tracking || horizontal || swipe > 0f) {
             return;
         }
         tracking = false;
@@ -77,19 +91,17 @@ public class TodoRowView extends FrameLayout {
     public TodoRowView(Context context) {
         super(context);
         setWillNotDraw(false);
+        paperColor = context.getColor(R.color.paper);
+        editSurfaceColor = context.getColor(R.color.edit_surface);
         inkColor = context.getColor(R.color.ink);
         doneColor = context.getColor(R.color.done);
         swipeTintColor = context.getColor(R.color.swipe_tint);
         swipeCheckColor = context.getColor(R.color.swipe_check);
         swipeDeleteTintColor = context.getColor(R.color.swipe_delete_tint);
         swipeDeleteColor = context.getColor(R.color.swipe_delete);
-        setBackgroundColor(context.getColor(R.color.paper));
+        setBackgroundColor(paperColor);
         setFocusable(false);
-        setOnClickListener(view -> {
-            if (listener != null && todo != null) {
-                listener.onEditRequested(todo, this);
-            }
-        });
+        setOnClickListener(view -> startInlineEdit());
 
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
@@ -101,21 +113,61 @@ public class TodoRowView extends FrameLayout {
         label.setIncludeFontPadding(false);
         label.setPadding(
                 Ui.dp(context, 26),
-                Ui.dp(context, 20),
+                Ui.dp(context, 14),
                 Ui.dp(context, 26),
-                Ui.dp(context, 20));
-        label.setGravity(android.view.Gravity.START);
+                Ui.dp(context, 14));
+        label.setGravity(Gravity.START);
         addView(label, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
-        setMinimumHeight(Ui.dp(context, 64));
+        setMinimumHeight(Ui.dp(context, 52));
+
+        inlineEditor = new EditText(context);
+        inlineEditor.setBackground(null);
+        inlineEditor.setTextColor(inkColor);
+        inlineEditor.setHintTextColor(context.getColor(R.color.hint));
+        inlineEditor.setTextSize(17f);
+        inlineEditor.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+        inlineEditor.setIncludeFontPadding(false);
+        inlineEditor.setSingleLine(true);
+        inlineEditor.setInputType(
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        inlineEditor.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        inlineEditor.setFilters(new InputFilter[]{
+                new InputFilter.LengthFilter(MainActivity.MAX_TODO_LENGTH)
+        });
+        inlineEditor.setHint(R.string.edit_hint);
+        inlineEditor.setPadding(
+                Ui.dp(context, 26),
+                Ui.dp(context, 14),
+                Ui.dp(context, 26),
+                Ui.dp(context, 14));
+        inlineEditor.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        inlineEditor.setVisibility(GONE);
+        addView(inlineEditor, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        inlineEditor.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                commitInlineEdit();
+                return true;
+            }
+            if (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    commitInlineEdit();
+                }
+                return true;
+            }
+            return false;
+        });
+        inlineEditor.setOnFocusChangeListener((view, hasFocus) -> {
+            if (!hasFocus && editing) {
+                commitInlineEdit();
+            }
+        });
 
         feedbackPaint.setStyle(Paint.Style.STROKE);
         feedbackPaint.setStrokeWidth(Ui.dp(context, 2.2f));
         feedbackPaint.setStrokeCap(Paint.Cap.ROUND);
         feedbackPaint.setStrokeJoin(Paint.Join.ROUND);
-
-        dividerPaint.setColor(context.getColor(R.color.divider));
-        dividerPaint.setStrokeWidth(Math.max(1f, Ui.dp(context, 0.75f)));
     }
 
     public void setListener(Listener listener) {
@@ -126,10 +178,19 @@ public class TodoRowView extends FrameLayout {
         return todo;
     }
 
+    public EditText getInlineEditor() {
+        return inlineEditor;
+    }
+
+    public boolean isEditing() {
+        return editing;
+    }
+
     public void bind(Todo todo) {
         this.todo = todo;
         this.done = todo.done;
         resetSwipe();
+        finishInlineEditWithoutCommit();
 
         label.setText(todo.text);
         if (todo.done) {
@@ -146,10 +207,71 @@ public class TodoRowView extends FrameLayout {
         invalidate();
     }
 
-    public void setDividerVisible(boolean visible) {
-        if (dividerVisible != visible) {
-            dividerVisible = visible;
-            invalidate();
+    private void startInlineEdit() {
+        if (editing || todo == null) {
+            return;
+        }
+        resetSwipe();
+        editing = true;
+        setBackgroundColor(editSurfaceColor);
+        label.setVisibility(GONE);
+        inlineEditor.setText(todo.text);
+        inlineEditor.setTextColor(inkColor);
+        inlineEditor.setVisibility(VISIBLE);
+        inlineEditor.requestFocus();
+        inlineEditor.setSelection(inlineEditor.length());
+        postDelayed(this::showKeyboard, 80);
+        if (listener != null) {
+            listener.onInlineEditStarted(this);
+        }
+    }
+
+    public void commitInlineEdit() {
+        if (!editing) {
+            return;
+        }
+        editing = false;
+        String text = inlineEditor.getText().toString().trim();
+        hideKeyboard();
+        inlineEditor.clearFocus();
+        inlineEditor.setVisibility(GONE);
+        label.setVisibility(VISIBLE);
+        setBackgroundColor(paperColor);
+        if (listener != null) {
+            listener.onInlineEditFinished(this);
+        }
+        if (listener != null && todo != null) {
+            listener.onEditCommitted(todo, this, text);
+        }
+    }
+
+    private void finishInlineEditWithoutCommit() {
+        if (editing) {
+            editing = false;
+            hideKeyboard();
+            inlineEditor.clearFocus();
+        }
+        inlineEditor.setVisibility(GONE);
+        label.setVisibility(VISIBLE);
+        setBackgroundColor(paperColor);
+    }
+
+    private void showKeyboard() {
+        if (!editing || !isAttachedToWindow()) {
+            return;
+        }
+        InputMethodManager manager =
+                (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (manager != null) {
+            manager.showSoftInput(inlineEditor, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager manager =
+                (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (manager != null) {
+            manager.hideSoftInputFromWindow(inlineEditor.getWindowToken(), 0);
         }
     }
 
@@ -230,17 +352,10 @@ public class TodoRowView extends FrameLayout {
     }
 
     @Override
-    protected void dispatchDraw(Canvas canvas) {
-        super.dispatchDraw(canvas);
-        if (dividerVisible) {
-            float halfStroke = dividerPaint.getStrokeWidth() / 2f;
-            float y = getHeight() - halfStroke;
-            canvas.drawLine(0f, y, getWidth(), y, dividerPaint);
-        }
-    }
-
-    @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (editing) {
+            return false;
+        }
         int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
             cancelSwipeAnimation();
@@ -400,6 +515,7 @@ public class TodoRowView extends FrameLayout {
     protected void onDetachedFromWindow() {
         cancelPendingLongPress();
         cancelSwipeAnimation();
+        hideKeyboard();
         super.onDetachedFromWindow();
     }
 }

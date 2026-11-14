@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -37,8 +38,7 @@ public class MainActivity extends Activity
     private LinearLayout listView;
     private LinearLayout emptyBox;
     private AlertDialog deleteAllDialog;
-    private Todo editingTodo;
-    private TodoRowView editingRow;
+    private TodoRowView inlineEditingRow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,7 +129,6 @@ public class MainActivity extends Activity
             return false;
         });
 
-        refreshDividers();
         refreshEmptyState();
     }
 
@@ -205,16 +204,6 @@ public class MainActivity extends Activity
         root.requestApplyInsets();
     }
 
-    private void refreshDividers() {
-        int count = listView.getChildCount();
-        for (int i = 0; i < count; i++) {
-            View child = listView.getChildAt(i);
-            if (child instanceof TodoRowView) {
-                ((TodoRowView) child).setDividerVisible(i < count - 1);
-            }
-        }
-    }
-
     private void refreshEmptyState() {
         if (emptyBox == null) {
             return;
@@ -239,53 +228,12 @@ public class MainActivity extends Activity
     private void commitEditor() {
         EditText editor = root.getEditor();
         String text = editor.getText().toString().trim();
-        Todo target = editingTodo;
-        TodoRowView targetRow = editingRow;
-        editingTodo = null;
-        editingRow = null;
-
-        if (target != null) {
-            if (!text.isEmpty()) {
-                updateTodo(target, targetRow, text);
-            }
-        } else if (!text.isEmpty()) {
+        if (!text.isEmpty()) {
             addTodo(text);
         }
-
         editor.setText("");
-        editor.setHint(R.string.add_hint);
         editor.clearFocus();
         root.closeAddPanel();
-    }
-
-    private void updateTodo(Todo todo, TodoRowView row, String text) {
-        String trimmed = text.trim();
-        if (trimmed.isEmpty()) {
-            return;
-        }
-        if (trimmed.length() > MAX_TODO_LENGTH) {
-            trimmed = trimmed.substring(0, MAX_TODO_LENGTH);
-        }
-        if (trimmed.equals(todo.text)) {
-            return;
-        }
-
-        todo.text = trimmed;
-        store.save(todos);
-        if (row != null && row.getParent() == listView) {
-            row.bind(todo);
-        } else {
-            for (int i = 0; i < listView.getChildCount(); i++) {
-                View child = listView.getChildAt(i);
-                if (child instanceof TodoRowView) {
-                    TodoRowView candidate = (TodoRowView) child;
-                    if (candidate.getTodo() == todo) {
-                        candidate.bind(todo);
-                        break;
-                    }
-                }
-            }
-        }
     }
 
     private void addTodo(String text) {
@@ -310,7 +258,6 @@ public class MainActivity extends Activity
         row.setTranslationY(-Ui.dp(this, 6));
         listView.addView(row, 0, rowLayoutParams());
 
-        refreshDividers();
         store.save(todos);
         refreshEmptyState();
 
@@ -358,7 +305,6 @@ public class MainActivity extends Activity
         row.setTranslationY(Ui.dp(this, 8));
         listView.addView(row, rowLayoutParams());
 
-        refreshDividers();
         refreshEmptyState();
         row.animate()
                 .alpha(1f)
@@ -380,7 +326,6 @@ public class MainActivity extends Activity
         todos.remove(index);
         store.save(todos);
         listView.removeView(row);
-        refreshDividers();
         refreshEmptyState();
     }
 
@@ -410,20 +355,6 @@ public class MainActivity extends Activity
         }
     }
 
-    @Override
-    public void onEditRequested(Todo todo, TodoRowView row) {
-        if (todo == null || root.isAddOpen()) {
-            return;
-        }
-        editingTodo = todo;
-        editingRow = row;
-        EditText editor = root.getEditor();
-        editor.setHint(R.string.edit_hint);
-        editor.setText(todo.text);
-        editor.setSelection(editor.length());
-        root.openAddPanel(false);
-    }
-
     private int countCompleted() {
         int count = 0;
         for (Todo todo : todos) {
@@ -450,8 +381,34 @@ public class MainActivity extends Activity
             }
         }
         store.save(todos);
-        refreshDividers();
         refreshEmptyState();
+    }
+
+    @Override
+    public void onInlineEditStarted(TodoRowView row) {
+        inlineEditingRow = row;
+    }
+
+    @Override
+    public void onInlineEditFinished(TodoRowView row) {
+        if (inlineEditingRow == row) {
+            inlineEditingRow = null;
+        }
+    }
+
+    @Override
+    public void onEditCommitted(Todo todo, TodoRowView row, String text) {
+        String trimmed = text.trim();
+        if (!trimmed.isEmpty()) {
+            if (trimmed.length() > MAX_TODO_LENGTH) {
+                trimmed = trimmed.substring(0, MAX_TODO_LENGTH);
+            }
+            if (!trimmed.equals(todo.text)) {
+                todo.text = trimmed;
+                store.save(todos);
+            }
+        }
+        row.bind(todo);
     }
 
     @Override
@@ -470,9 +427,6 @@ public class MainActivity extends Activity
 
     @Override
     public void onAddPanelClosed() {
-        editingTodo = null;
-        editingRow = null;
-        root.getEditor().setHint(R.string.add_hint);
         emptyBox.animate().cancel();
         emptyBox.setAlpha(1f);
         refreshEmptyState();
@@ -484,12 +438,43 @@ public class MainActivity extends Activity
     }
 
     @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                && inlineEditingRow != null) {
+            int[] location = new int[2];
+            inlineEditingRow.getLocationOnScreen(location);
+            float rawX = event.getRawX();
+            float rawY = event.getRawY();
+            boolean inside = rawX >= location[0]
+                    && rawX <= location[0] + inlineEditingRow.getWidth()
+                    && rawY >= location[1]
+                    && rawY <= location[1] + inlineEditingRow.getHeight();
+            if (!inside) {
+                inlineEditingRow.commitInlineEdit();
+            }
+        }
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
     public void onBackPressed() {
+        if (inlineEditingRow != null) {
+            inlineEditingRow.commitInlineEdit();
+            return;
+        }
         if (root != null && root.isAddOpen()) {
             commitEditor();
             return;
         }
         super.onBackPressed();
+    }
+
+    @Override
+    protected void onPause() {
+        if (inlineEditingRow != null) {
+            inlineEditingRow.commitInlineEdit();
+        }
+        super.onPause();
     }
 
     @Override

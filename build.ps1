@@ -1,8 +1,8 @@
 param(
     [string]$SdkRoot = $env:ANDROID_SDK_ROOT,
     [string]$JdkHome = $env:JAVA_HOME,
-    [string]$VersionName = "1.3.0",
-    [int]$VersionCode = 4,
+    [string]$VersionName = "1.4.0",
+    [int]$VersionCode = 5,
     [string]$KeystorePass = $env:TODO_KEYSTORE_PASS,
     [string]$KeyAlias = "todo"
 )

@@ -215,18 +215,21 @@ public class MainActivityTest {
     }
 
     @Test
-    public void tapTodoOpensEditorAndSavesChanges() {
+    public void tapTodoOpensInlineEditorAndSavesChanges() {
         addTodo("原始内容");
         layoutRoot();
         tapRow(listView.getChildAt(0));
 
-        assertTrue(root.isAddOpen());
-        assertEquals("原始内容", editor.getText().toString());
+        TodoRowView row = (TodoRowView) listView.getChildAt(0);
+        EditText inline = row.getInlineEditor();
+        assertFalse(root.isAddOpen());
+        assertEquals(View.VISIBLE, inline.getVisibility());
+        assertEquals("原始内容", inline.getText().toString());
         screenshot("06-edit.png");
 
-        editor.setText("修改后的内容");
-        editor.onEditorAction(EditorInfo.IME_ACTION_DONE);
-        idle(900);
+        inline.setText("修改后的内容");
+        inline.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        idle(700);
         layoutRoot();
         assertEquals("修改后的内容", textOf(listView.getChildAt(0)));
         List<Todo> stored = new TodoStore(app).load();
@@ -236,14 +239,16 @@ public class MainActivityTest {
         // Completed items can also be edited while keeping their completed state.
         swipeRightRow(listView.getChildAt(0));
         tapRow(listView.getChildAt(0));
-        assertTrue(root.isAddOpen());
-        assertEquals("修改后的内容", editor.getText().toString());
-        editor.setText("已完成也能修改");
-        editor.onEditorAction(EditorInfo.IME_ACTION_DONE);
-        idle(900);
-        layoutRoot();
 
         TodoRowView doneRow = (TodoRowView) listView.getChildAt(0);
+        EditText doneInline = doneRow.getInlineEditor();
+        assertEquals(View.VISIBLE, doneInline.getVisibility());
+        assertEquals("修改后的内容", doneInline.getText().toString());
+        doneInline.setText("已完成也能修改");
+        doneInline.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        idle(700);
+        layoutRoot();
+
         assertEquals("已完成也能修改", textOf(doneRow));
         assertTrue(doneRow.getTodo().done);
         TextView doneLabel = (TextView) doneRow.getChildAt(0);

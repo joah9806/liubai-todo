@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="paper">#FF111113</color>
+    <color name="edit_surface">#FF1E1E22</color>
     <color name="ink">#FFECECEE</color>
     <color name="done">#FF8F8F95</color>
     <color name="hint">#FF6B6B71</color>
